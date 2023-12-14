@@ -30,6 +30,9 @@ FORM = b'''
                 var now_str = `${formatted['year']}-${formatted['month']}-${formatted['day']}T${formatted['hour']}:${formatted['minute']}`;
                 datetime_field.value = now_str;
 
+                window.addEventListener('message', function handle_message(evt) {
+                    alert('got ' + JSON.stringify(evt.data));
+                });
 
             })();
         </script>

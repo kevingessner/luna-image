@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    </head>
+
+    <body>
+        <button id="locate">Locate</button>
+        <p id="message"></p>
+        <script type="text/javascript">
+            (function() {
+                document.querySelector('#locate').addEventListener('click', function locate_click() {
+                    navigator.geolocation.getCurrentPosition(
+                        function success(pos) {
+                            const pos_data = {
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                            };
+                            alert(JSON.stringify(pos_data));
+                            if (window.parent) {
+                                window.parent.postMessage(pos_data);
+                            }
+                        },
+                        function error(e) {
+                            document.querySelector('#message').innerText = e.message;
+                        }
+                    );
+                });
+            })();
+        </script>
+    </body>
+
+</html>
