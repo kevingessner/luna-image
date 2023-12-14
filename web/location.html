@@ -17,7 +17,7 @@
                             };
                             alert(JSON.stringify(pos_data));
                             if (window.parent) {
-                                window.parent.postMessage(pos_data);
+                                window.parent.postMessage(pos_data, '*');
                             }
                         },
                         function error(e) {

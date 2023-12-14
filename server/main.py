@@ -12,6 +12,7 @@ FORM = b'''
         <h1>Luna Setup</h1>
         <form action="" method="post">
             <input type="datetime-local" name="datetime" />
+            <iframe allow="geolocation" src="https://kevingessner.com/luna-image/web/location.html"></iframe>
             <input type="submit" />
         </form>
         <script type="text/javascript">
