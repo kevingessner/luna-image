@@ -2,7 +2,8 @@
 
 DIR=$(dirname "$(realpath "$0")")
 OUT_BASE=$DIR/luna-base.img
-OUT_FINAL=${1-"$DIR/luna.img"}
+SUFFIX=$1
+OUT_FINAL=${2-"$DIR/luna.img"}
 RASPIOS_IMAGE_URL=https://downloads.raspberrypi.org/raspios_oldstable_lite_armhf/images/raspios_oldstable_lite_armhf-2023-12-06/2023-12-05-raspios-bullseye-armhf-lite.img.xz
 RASPIOS_IMAGE_FILE=$(basename "$RASPIOS_IMAGE_URL")
 
@@ -10,7 +11,7 @@ LUNA_USERNAME=luna
 LUNA_UID=1001
 LUNA_SDM_COPYDIR="copydir:from=$DIR/../luna|to=/home/$LUNA_USERNAME/|rsyncopts=--archive --cvs-exclude --info=progress2 --chown=$LUNA_UID:$LUNA_UID"
 
-
+sudo true # sdm needs sudo later; get the password now so we can walk away
 
 if ! [[ -f "$OUT_BASE" ]]
 then
@@ -31,19 +32,21 @@ then
         --plugin "$LUNA_SDM_COPYDIR"
 fi
 
-rsync --progress --update "$OUT_BASE" "$OUT_FINAL"
+rsync --progress "$OUT_BASE" "$OUT_FINAL"
 
 sudo sdm \
     --customize "$OUT_FINAL" \
     --redo-customize \
     --chroot `# required on WSL` \
     --poptions noupdate,noupgrade,noautoremove \
-    --plugin apps:"apps=autoconf,imagemagick,python3-venv,fontconfig,fonts-liberation,fonts-urw-base35" \
+    --plugin apps:"apps=autoconf,imagemagick,python3-venv,fontconfig,fonts-liberation,fonts-urw-base35|name=apps" \
     --plugin disables:"piwiz|triggerhappy" \
     --plugin L10n:"keymap=us|locale=en_US.UTF-8|timezone=UTC" \
     --plugin network:"wifissid=TP-Link_C930|wifipassword=09744165|wificountry=US" \
-    --plugin hotspot:"domain=luna.local|type=local|ssid=luna-setup|passphrase=luna-setup|hwmode=g|channel=3" \
+    --plugin hotspot:"domain=luna.local|type=local|ssid=luna-setup-$SUFFIX|passphrase=luna-setup|hwmode=g|channel=3" \
+    --plugin $DIR/rtc.sh:"" \
+    --plugin runatboot:"script=$DIR/boot-setup.sh" \
     `# update the luna files in the base image; should be quick if the PNGs are unchanged` \
     --plugin "$LUNA_SDM_COPYDIR" \
-    --hostname mypi1 \
+    --hostname "luna-$SUFFIX" \
     --regen-ssh-host-keys
