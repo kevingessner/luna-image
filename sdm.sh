@@ -1,17 +1,45 @@
-#!/bin/bash -ex
+#!/bin/bash -e
+
+usage() {
+    echo "usage: $0 [-h] -n HOSTNAME_SUFFIX [-o OUTFILE]" >&2
+    exit 127
+}
 
 DIR=$(dirname "$(realpath "$0")")
+OUT_FINAL="$DIR/luna.img"
+SUFFIX=""
+
+while getopts ":hn:o:" arg
+do
+    case $arg in
+        n)
+            SUFFIX=$OPTARG
+            ;;
+        o)
+            OUT_FINAL=$OPTARG
+            ;;
+        h | *)
+            usage
+            ;;
+    esac
+done
+if [[ -z "$SUFFIX" ]]
+then
+    echo "HOSTNAME_SUFFIX is required" >&2
+    usage
+fi
+
 OUT_BASE=$DIR/luna-base.img
-SUFFIX=$1
-OUT_FINAL=${2-"$DIR/luna.img"}
 RASPIOS_IMAGE_URL=https://downloads.raspberrypi.org/raspios_oldstable_lite_armhf/images/raspios_oldstable_lite_armhf-2023-12-06/2023-12-05-raspios-bullseye-armhf-lite.img.xz
 RASPIOS_IMAGE_FILE=$(basename "$RASPIOS_IMAGE_URL")
 
 LUNA_USERNAME=luna
 LUNA_UID=1001
-LUNA_SDM_COPYDIR="copydir:from=$DIR/../luna|to=/home/$LUNA_USERNAME/|rsyncopts=--archive --cvs-exclude --info=progress2 --chown=$LUNA_UID:$LUNA_UID"
+LUNA_SDM_COPYDIR="copydir:from=$DIR/../luna|to=/home/$LUNA_USERNAME/|rsyncopts=--archive --cvs-exclude --info=progress2 --chown=$LUNA_UID:$LUNA_UID --delete --delete-excluded --exclude-from=$DIR/../luna/.gitignore"
 
 sudo true # sdm needs sudo later; get the password now so we can walk away
+
+set -x
 
 if ! [[ -f "$OUT_BASE" ]]
 then
@@ -29,7 +57,8 @@ then
         --extend --xmb 18000 \
         --plugin user:"adduser=$LUNA_USERNAME|uid=$LUNA_UID" \
         --plugin $DIR/authorized_keys.sh:"user=$LUNA_USERNAME|keyfile=$HOME/.ssh/rpi_luna_ssh_20230511.pub" \
-        --plugin "$LUNA_SDM_COPYDIR"
+        --plugin "$LUNA_SDM_COPYDIR" \
+        < /dev/null # stop sdm from dropping into the image with a shell, by disconnecting the tty
 fi
 
 rsync --progress "$OUT_BASE" "$OUT_FINAL"
@@ -49,4 +78,5 @@ sudo sdm \
     `# update the luna files in the base image; should be quick if the PNGs are unchanged` \
     --plugin "$LUNA_SDM_COPYDIR" \
     --hostname "luna-$SUFFIX" \
-    --regen-ssh-host-keys
+    --regen-ssh-host-keys \
+    < /dev/null # stop sdm from dropping into the image with a shell, by disconnecting the tty
